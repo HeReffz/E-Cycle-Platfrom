@@ -47,7 +47,8 @@ function DropPoints() {
   ];
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/droppoints')
+    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    fetch(`${apiUrl}/api/droppoints`)
       .then(res => res.json())
       .then(data => {
         // Fallback to dummy locations if data is empty or missing lat/lng
