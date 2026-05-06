@@ -139,7 +139,8 @@ app.post('/api/pickups', async (req, res) => {
     res.status(201).json({ success: true, message: 'Pickup scheduled successfully!', data: newPickup });
   } catch (error) {
     console.error("Gagal menyimpan data pickup:", error);
-    res.status(500).json({ success: false, error: "Internal Server Error" });
+    import('fs').then(fs => fs.writeFileSync('error.log', error.message + '\n' + error.stack));
+    res.status(500).json({ success: false, error: "Internal Server Error", detail: error.message, stack: error.stack });
   }
 });
 
@@ -241,6 +242,9 @@ Use only values from the lists. If not electronics, use Lainnya.`;
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
+export default app;
