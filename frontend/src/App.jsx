@@ -8,7 +8,11 @@ import Impact from "./pages/Impact";
 import Footer from "./components/Footer";
 import PickupSchedule from "./pages/PickupSchedule";
 import LoadingScreen from "./components/LoadingScreen";
+import LoginPage from "./pages/LoginPage";
+import SignUpPage from "./pages/SignUpPage";
+import DashboardPage from "./pages/dashboard/DasboardPage";
 import "./index.css";
+import "./styles/auth.css";
 
 // ── Scroll to top on every route change ──────────────────────────────────────
 function ScrollToTop() {
@@ -40,6 +44,9 @@ function App() {
               <Route path="/estimator" element={<Estimator />} />
               <Route path="/impact" element={<Impact />} />
               <Route path="/pickup" element={<PickupSchedule />} />
+              <Route path="/LoginPage" element={<LoginPage />} />
+              <Route path="/SignUpPage" element={<SignUpPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
             </Routes>
           </main>
           <Footer />

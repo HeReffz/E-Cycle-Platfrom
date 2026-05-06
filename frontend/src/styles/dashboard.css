@@ -1,0 +1,298 @@
+.dashboard-container {
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.dashboard-header h1 {
+  font-size: 32px;
+  color: #1a1a1a;
+  margin: 0 0 10px 0;
+  font-weight: 700;
+}
+
+.dashboard-header p {
+  color: #666;
+  margin: 0;
+  font-size: 14px;
+}
+
+.tab-navigation {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  background: white;
+  padding: 10px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.tab-button {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.tab-button.active {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+}
+
+.tab-content {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Saldo Tab */
+.saldo-tab {
+  animation: fadeIn 0.3s ease;
+}
+
+.saldo-card {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.saldo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.saldo-header h3 {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.visibility-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #999;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s ease;
+}
+
+.visibility-toggle:hover {
+  color: #333;
+}
+
+.saldo-amount {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 30px;
+}
+
+.saldo-amount .label {
+  font-size: 20px;
+  color: #999;
+  margin-top: 2px;
+}
+
+.saldo-amount .amount {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.saldo-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.action-btn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.action-btn.primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+}
+
+.action-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+}
+
+/* Transaksi Tab */
+.transaksi-tab {
+  animation: fadeIn 0.3s ease;
+}
+
+.transaksi-list {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.transaksi-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.3s ease;
+}
+
+.transaksi-item:last-child {
+  border-bottom: none;
+}
+
+.transaksi-item:hover {
+  background: #fafafa;
+}
+
+.transaksi-info {
+  flex: 1;
+}
+
+.transaksi-date {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+
+.transaksi-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #666;
+}
+
+.icon-success {
+  color: #22c55e;
+}
+
+.icon-pending {
+  color: #f59e0b;
+}
+
+.icon-failed {
+  color: #ef4444;
+}
+
+.transaksi-amount {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+  text-align: right;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.empty-state h3 {
+  font-size: 18px;
+  color: #1a1a1a;
+  margin: 0 0 10px 0;
+  font-weight: 700;
+}
+
+.empty-state p {
+  color: #666;
+  margin: 0 0 20px 0;
+  font-size: 14px;
+}
+
+.cta-button {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-header h1 {
+    font-size: 24px;
+  }
+
+  .saldo-amount .amount {
+    font-size: 24px;
+  }
+
+  .tab-navigation {
+    gap: 8px;
+  }
+
+  .tab-button {
+    font-size: 12px;
+    padding: 10px 12px;
+  }
+}

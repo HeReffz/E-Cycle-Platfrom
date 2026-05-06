@@ -431,6 +431,29 @@ img { max-width: 100%; display: block; }
   box-shadow: 0 2px 6px rgba(17,24,39,0.2);
 }
 
+/* Login button (dark solid - primary action) */
+.nav-login-btn {
+  background: var(--text);
+}
+
+.nav-login-btn:hover {
+  background: #1f2937;
+}
+
+/* Signup button (outline style) */
+.nav-signup-btn {
+  background: transparent;
+  color: var(--text);
+  border: 2px solid var(--border-strong);
+  box-shadow: var(--shadow-xs);
+}
+
+.nav-signup-btn:hover {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+
 /* ─── Hamburger — mobile only ─────────────────────────────────── */
 .hamburger-btn {
   display: none;
