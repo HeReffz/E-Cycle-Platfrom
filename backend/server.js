@@ -215,19 +215,23 @@ Use only values from the lists. If not electronics, use Lainnya.`;
     // 1. Strip markdown fences
     let clean = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
 
-    // 2. If still not valid JSON, try to extract first { } block
-    if (!clean.startsWith('{')) {
-      const match = clean.match(/\{[\s\S]*\}/);
-      if (match) clean = match[0];
-    }
+    // 2. Extract first complete JSON object (greedy - takes last })
+    const jsonMatch = clean.match(/\{[\s\S]*\}/);
+    if (jsonMatch) clean = jsonMatch[0];
 
     let parsed;
     try {
       parsed = JSON.parse(clean);
       console.log('[AI] Parsed result:', JSON.stringify(parsed));
     } catch (parseErr) {
-      console.error('[AI] JSON parse failed. Raw:', rawText);
-      return res.status(502).json({ error: 'AI returned unexpected format', raw: rawText.substring(0, 200) });
+      // If JSON still invalid, return a safe default instead of crashing
+      console.error('[AI] JSON parse failed. Raw:', rawText.substring(0, 100));
+      parsed = {
+        deviceTypes: ['Lainnya'],
+        kondisi: ['Kondisi baik'],
+        estimasiKondisi: 'AI tidak dapat mendeteksi perangkat dengan jelas.',
+        confidence: 'rendah'
+      };
     }
 
     res.json(parsed);
