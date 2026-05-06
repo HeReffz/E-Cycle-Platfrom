@@ -79,10 +79,10 @@ function DropPoints() {
     const R = 6371; // radius of Earth in km
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
 
@@ -127,26 +127,26 @@ function DropPoints() {
         <div className="card" style={{ padding: '1.5rem', maxHeight: '600px', overflowY: 'auto' }}>
           <div style={{ position: 'relative', marginBottom: '1rem' }}>
             <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input 
-              type="text" 
-              placeholder="Search by city or zip code..." 
+            <input
+              type="text"
+              placeholder="Search by city or zip code..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ 
-                width: '100%', padding: '0.8rem 1rem 0.8rem 2.5rem', 
+              style={{
+                width: '100%', padding: '0.8rem 1rem 0.8rem 2.5rem',
                 borderRadius: 'var(--border-radius)', border: '1px solid #ddd',
                 fontFamily: 'inherit', fontSize: '0.9rem'
               }}
             />
           </div>
-          
-          <button 
+
+          <button
             onClick={requestUserLocation}
             disabled={tracking}
-            style={{ 
+            style={{
               width: '100%', padding: '0.8rem', marginBottom: '1.5rem',
-              backgroundColor: userLocation ? 'var(--bg-color-alt)' : 'var(--primary)', 
-              color: userLocation ? 'var(--primary)' : 'white', 
+              backgroundColor: userLocation ? 'var(--bg-color-alt)' : 'var(--primary)',
+              color: userLocation ? 'var(--primary)' : 'white',
               border: userLocation ? '2px solid var(--primary)' : 'none',
               borderRadius: '12px', fontWeight: 600, cursor: tracking ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
@@ -162,12 +162,12 @@ function DropPoints() {
             ) : locationsWithDistance.length === 0 ? (
               <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Tidak ada data drop point.</p>
             ) : locationsWithDistance.map(loc => (
-              <div 
-                key={loc.id} 
+              <div
+                key={loc.id}
                 onClick={() => {
-                  if(loc.lat && loc.lng) setMapCenter([loc.lat, loc.lng]);
+                  if (loc.lat && loc.lng) setMapCenter([loc.lat, loc.lng]);
                 }}
-                style={{ padding: '1rem', border: '1px solid #eee', borderRadius: '16px', transition: 'var(--transition)', cursor: 'pointer' }} 
+                style={{ padding: '1rem', border: '1px solid #eee', borderRadius: '16px', transition: 'var(--transition)', cursor: 'pointer' }}
                 className="hover-highlight"
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
@@ -178,14 +178,14 @@ function DropPoints() {
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Jam Buka: {loc.operatingHours || '08:00 - 17:00'}</p>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.2rem', color: userLocation ? 'var(--primary)' : 'inherit', fontWeight: userLocation ? 700 : 500 }}>
-                    <Navigation size={14}/> {loc.distance}
+                    <Navigation size={14} /> {loc.distance}
                   </span>
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDirections(loc.address);
-                    }} 
-                    className="pill-btn" 
+                    }}
+                    className="pill-btn"
                     style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}
                   >
                     Directions
@@ -203,15 +203,15 @@ function DropPoints() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            
+
             {/* Markers for Drop Points */}
             {locationsWithDistance.map(loc => {
-              if(!loc.lat || !loc.lng) return null;
+              if (!loc.lat || !loc.lng) return null;
               return (
                 <Marker key={loc.id} position={[loc.lat, loc.lng]}>
                   <Popup>
-                    <strong>{loc.name}</strong><br/>
-                    {loc.address}<br/>
+                    <strong>{loc.name}</strong><br />
+                    {loc.address}<br />
                     <button onClick={() => handleDirections(loc.address)} className="pill-btn" style={{ padding: '0.2rem 0.5rem', marginTop: '0.5rem', fontSize: '0.7rem' }}>Get Directions</button>
                   </Popup>
                 </Marker>
@@ -222,7 +222,7 @@ function DropPoints() {
             {userLocation && (
               <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon}>
                 <Popup>
-                  <strong>Lokasi Kamu</strong><br/>
+                  <strong>Lokasi Kamu</strong><br />
                   Akurasi GPS
                 </Popup>
               </Marker>
