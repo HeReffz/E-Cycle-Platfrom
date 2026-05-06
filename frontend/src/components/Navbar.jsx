@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Recycle, Phone, Menu, X, ArrowRight, Calendar } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Recycle, Phone, Menu, X, ArrowRight, Calendar, User, LogOut } from "lucide-react";
 
 const NAV_LINKS = [
   { to: "/",            label: "Home" },
@@ -11,14 +11,36 @@ const NAV_LINKS = [
 ];
 
 function Navbar() {
-  const location  = useLocation();
-  const [menuOpen, setMenuOpen]   = useState(false);
-  const [scrolled, setScrolled]   = useState(false);   // mild scroll
-  const [compact,  setCompact]    = useState(false);   // more scroll → shrink
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [compact, setCompact] = useState(false);
+  
+  // --- STATE USER ---
+  const [user, setUser] = useState(null);
 
-  const isActive   = (path) => location.pathname === path;
-  const closeMenu  = useCallback(() => setMenuOpen(false), []);
+  const isActive = (path) => location.pathname === path;
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
   const toggleMenu = useCallback(() => setMenuOpen((p) => !p), []);
+
+  // Cek status login saat komponen mount atau route berubah
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    } else {
+      setUser(null);
+    }
+  }, [location.pathname]); // Trigger ulang setiap pindah halaman untuk validasi data
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('authToken');
+    setUser(null);
+    closeMenu();
+    navigate('/LoginPage');
+  };
 
   /* ── Scroll state ─────────────────────────────────────────── */
   useEffect(() => {
@@ -55,12 +77,10 @@ function Navbar() {
     };
   }, [menuOpen]);
 
-  /* ── Dynamic nav height for mobile-menu padding ──────────── */
   const navHeight = compact ? 54 : 64;
 
   return (
     <>
-      {/* ════ NAVBAR ═════════════════════════════════════════ */}
       <nav
         className={[
           "navbar",
@@ -92,34 +112,46 @@ function Navbar() {
             ))}
           </nav>
 
-          {/* Desktop CTA + hamburger */}
+          {/* Desktop Actions */}
           <div className="nav-actions">
-            {/* WhatsApp icon */}
+            <Link to="/pickup" className="nav-cta pickup-btn" style={{ background: "var(--text)", color: "white", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <Calendar size={16} />
+              <span style={{ fontWeight: "600" }}>Schedule Pick Up</span>
+            </Link>
+
             <a
-              href="https://api.whatsapp.com/qr/XY5PSWPK2EZLD1?autoload=1&app_absent=0"
+              href="https://wa.me/yournumber"
               target="_blank"
               rel="noopener noreferrer"
-              className="nav-wa-btn nav-phone-btn"
+              className="nav-wa-btn"
               title="Chat via WhatsApp"
-              aria-label="WhatsApp"
             >
               <Phone size={16} strokeWidth={2} />
             </a>
 
-            {/* Schedule Pickup CTA */}
-            <Link to="/pickup" className="nav-cta nav-schedule-btn">
-              <Calendar size={14} strokeWidth={2.5} />
-              <span>Schedule Pickup</span>
-            </Link>
+            {/* CONDITIONAL RENDERING: USER PROFILE VS LOGIN/SIGNUP */}
+            {user ? (
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <Link to="/dashboard" className="nav-cta" style={{ background: "var(--primary-light)", color: "var(--primary-dark)" }}>
+                  <User size={14} strokeWidth={2.5} />
+                  <span>{user.email.split('@')[0]}</span> 
+                </Link>
+                <button onClick={handleLogout} className="icon-btn" title="Logout" style={{ width: '38px', height: '38px' }}>
+                  <LogOut size={16} />
+                </button>
+              </div>
+            ) : (
+              <>
+                <Link to="/LoginPage" className="nav-cta nav-login-btn">
+                  <span>Login</span>
+                </Link>
+                <Link to="/SignUpPage" className="nav-cta nav-signup-btn">
+                  <span>Sign Up</span>
+                </Link>
+              </>
+            )}
 
-            {/* Hamburger — mobile only */}
-            <button
-              className="hamburger-btn"
-              onClick={toggleMenu}
-              aria-label={menuOpen ? "Tutup menu" : "Buka menu"}
-              aria-expanded={menuOpen}
-              aria-controls="mobile-menu"
-            >
+            <button className="hamburger-btn" onClick={toggleMenu}>
               <span className={`hamburger-icon${menuOpen ? " open" : ""}`}>
                 <span /><span /><span />
               </span>
@@ -128,32 +160,34 @@ function Navbar() {
         </div>
       </nav>
 
-      {/* ════ MOBILE BACKDROP ════════════════════════════════ */}
-      <div
-        className={`mobile-menu-backdrop${menuOpen ? " open" : ""}`}
-        onClick={closeMenu}
-        aria-hidden="true"
-      />
+      {/* MOBILE BACKDROP */}
+      <div className={`mobile-menu-backdrop${menuOpen ? " open" : ""}`} onClick={closeMenu} />
 
-      {/* ════ MOBILE SLIDE-DOWN MENU ════════════════════════ */}
+      {/* MOBILE MENU */}
       <div
         id="mobile-menu"
         className={`mobile-menu${menuOpen ? " open" : ""}`}
         style={{ paddingTop: navHeight }}
-        aria-hidden={!menuOpen}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Menu navigasi"
       >
         <div className="mobile-menu-inner">
-          <nav className="mobile-nav-links" aria-label="Mobile navigation">
+          {/* User Info di Mobile jika sudah login */}
+          {user && (
+            <Link to="/dashboard" onClick={closeMenu} style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div style={{ padding: '1rem', background: 'var(--bg-alt)', borderRadius: 'var(--r-md)', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Logged in as</p>
+                  <p style={{ fontWeight: 700 }}>{user.email}</p>
+                </div>
+                <div style={{ background: 'var(--primary-color)', color: 'white', padding: '0.5rem', borderRadius: '50%', display: 'flex' }}>
+                  <User size={16} />
+                </div>
+              </div>
+            </Link>
+          )}
+
+          <nav className="mobile-nav-links">
             {NAV_LINKS.map(({ to, label }) => (
-              <Link
-                key={to}
-                to={to}
-                className={`mobile-nav-link${isActive(to) ? " active" : ""}`}
-                onClick={closeMenu}
-              >
+              <Link key={to} to={to} className={`mobile-nav-link${isActive(to) ? " active" : ""}`} onClick={closeMenu}>
                 <span>{label}</span>
                 <ArrowRight size={14} className="mobile-nav-arrow" />
               </Link>
@@ -161,24 +195,20 @@ function Navbar() {
           </nav>
 
           <div className="mobile-menu-footer">
-            <Link
-              to="/pickup"
-              className="pill-btn"
-              style={{ width: "100%", justifyContent: "center", gap: "0.5rem" }}
-              onClick={closeMenu}
-            >
-              <Calendar size={15} /> Schedule Pickup
-            </Link>
-            <a
-              href="https://api.whatsapp.com/qr/XY5PSWPK2EZLD1?autoload=1&app_absent=0"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="pill-btn outline"
-              style={{ width: "100%", justifyContent: "center", gap: "0.5rem" }}
-              onClick={closeMenu}
-            >
-              <Phone size={15} /> WhatsApp
-            </a>
+            {user ? (
+              <button onClick={handleLogout} className="pill-btn outline" style={{ width: "100%" }}>
+                <LogOut size={15} /> Logout
+              </button>
+            ) : (
+              <>
+                <Link to="/LoginPage" className="pill-btn" style={{ width: "100%", justifyContent: "center" }} onClick={closeMenu}>
+                   Login
+                </Link>
+                <Link to="/SignUpPage" className="pill-btn outline" style={{ width: "100%", justifyContent: "center" }} onClick={closeMenu}>
+                   Sign Up
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
