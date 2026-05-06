@@ -14,7 +14,15 @@ import {
   X,
   AlertCircle,
   Loader2,
+  Check,
+  Zap,
+  Activity,
+  ShieldAlert,
+  Wrench,
+  ThumbsUp,
+  MinusCircle,
 } from "lucide-react";
+import { ScrollReveal } from "../components/ScrollReveal";
 
 const inputStyle = {
   width: "100%",
@@ -43,19 +51,28 @@ const fieldStyle = {
 
 // ─── AI Photo Detection Component ────────────────────────────────────────────
 function AIPhotoDetector({ onDetected }) {
-  const [image, setImage] = useState(null);
+  const [image, setImage]             = useState(null);
   const [imageBase64, setImageBase64] = useState(null);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState(null);
-  const fileRef = useRef();
+  const [mediaType, setMediaType]     = useState('image/jpeg');
+  const [analyzing, setAnalyzing]     = useState(false);
+  const [loadingText, setLoadingText] = useState('');
+  const [result, setResult]           = useState(null);
+  const [error, setError]             = useState(null);
+  const [dragOver, setDragOver]       = useState(false);
+  const fileRef  = useRef();
+  const abortRef = useRef(null);
+  const STEPS = ['Analyzing device...', 'Detecting condition...', 'Processing image...', 'Almost done...'];
 
   const handleFile = (file) => {
-    if (!file || !file.type.startsWith("image/")) return;
+    if (!file) return;
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.type)) { setError('Format tidak didukung. Gunakan JPG, PNG, atau WEBP.'); return; }
+    if (file.size > 10 * 1024 * 1024) { setError('File terlalu besar. Maksimum 10MB.'); return; }
     const reader = new FileReader();
     reader.onload = (e) => {
       setImage(e.target.result);
-      setImageBase64(e.target.result.split(",")[1]);
+      setImageBase64(e.target.result.split(',')[1]);
+      setMediaType(file.type);
       setResult(null);
       setError(null);
     };
@@ -64,70 +81,60 @@ function AIPhotoDetector({ onDetected }) {
 
   const handleDrop = (e) => {
     e.preventDefault();
+    setDragOver(false);
     handleFile(e.dataTransfer.files[0]);
   };
 
   const analyzeImage = async () => {
-    if (!imageBase64) return;
+    if (!imageBase64 || analyzing) return;
     setAnalyzing(true);
     setError(null);
+    setResult(null);
+    let step = 0;
+    setLoadingText(STEPS[0]);
+    const textTimer = setInterval(() => { step = (step + 1) % STEPS.length; setLoadingText(STEPS[step]); }, 1200);
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiUrl}/api/ai/analyze`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          messages: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "image",
-                  source: {
-                    type: "base64",
-                    media_type: "image/jpeg",
-                    data: imageBase64,
-                  },
-                },
-                {
-                  type: "text",
-                  text: `Kamu adalah sistem deteksi e-waste. Analisa gambar ini dan kembalikan JSON SAJA (tanpa penjelasan, tanpa markdown, tanpa backtick) dengan format persis:
-{
-  "deviceTypes": ["<jenis perangkat dari list: Smartphone, Laptop, Tablet, TV / Monitor, Printer, Kabel / Aksesori, Lainnya>"],
-  "kondisi": ["<kondisi dari list: Menyala normal, Mati total, Layar retak, Baterai bocor, Fisik rusak, Kondisi baik>"],
-  "estimasiKondisi": "<deskripsi singkat kondisi dalam Bahasa Indonesia, max 1 kalimat>",
-  "confidence": "<tinggi/sedang/rendah>"
-}
-Pilih deviceTypes dan kondisi yang relevan dari list yang disediakan. Jika bukan perangkat elektronik, tetap isi dengan Lainnya.`,
-                },
-              ],
-            },
-          ],
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64, mediaType }),
+        signal: controller.signal,
       });
-
       const data = await response.json();
-      const text = data.content?.map((c) => c.text || "").join("") || "";
-      const clean = text.replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(clean);
-      setResult(parsed);
+      if (!response.ok) {
+        let msg = 'Gagal menganalisa gambar. Coba lagi.';
+        if (response.status === 503) msg = 'Layanan AI belum dikonfigurasi di server.';
+        else if (response.status === 429 || data?.detail?.includes?.('429')) msg = 'AI sedang sibuk (rate limit). Tunggu 30 detik lalu coba lagi.';
+        else if (response.status === 502) msg = data.error === 'AI returned unexpected format' ? 'AI tidak mengembalikan format yang valid. Coba foto lain.' : 'Layanan AI error. Coba lagi.';
+        console.error('[AI Frontend] Error response:', response.status, data);
+        setError(msg);
+        return;
+      }
+      if (!data.deviceTypes || !data.kondisi) {
+        setError('AI tidak dapat mengenali perangkat. Coba foto lain.');
+        return;
+      }
+      setResult(data);
     } catch (err) {
-      setError("Gagal menganalisa gambar. Coba lagi ya.");
+      if (err.name === 'AbortError') return;
+      setError('Tidak dapat terhubung ke server. Pastikan backend berjalan.');
     } finally {
+      clearInterval(textTimer);
       setAnalyzing(false);
+      abortRef.current = null;
     }
   };
 
-  const applyResult = () => {
-    if (result) onDetected(result);
-  };
+  const applyResult = () => { if (result) onDetected(result); };
 
   const reset = () => {
-    setImage(null);
-    setImageBase64(null);
-    setResult(null);
-    setError(null);
+    if (abortRef.current) abortRef.current.abort();
+    setImage(null); setImageBase64(null); setResult(null);
+    setError(null); setAnalyzing(false); setDragOver(false);
+    if (fileRef.current) fileRef.current.value = '';
   };
 
   return (
@@ -190,23 +197,19 @@ Pilih deviceTypes dan kondisi yang relevan dari list yang disediakan. Jika bukan
           onClick={() => fileRef.current.click()}
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
+          onDragEnter={() => setDragOver(true)}
+          onDragLeave={() => setDragOver(false)}
           style={{
-            border: "2px dashed #ddd",
+            border: `2px dashed ${dragOver ? 'var(--primary)' : '#ddd'}`,
             borderRadius: 16,
-            padding: "2rem",
-            textAlign: "center",
-            cursor: "pointer",
-            background: "white",
-            transition: "border-color 0.2s, background 0.2s",
+            padding: '2.5rem 2rem',
+            textAlign: 'center',
+            cursor: 'pointer',
+            background: dragOver ? 'rgba(34,197,94,0.06)' : 'rgba(245,242,232,0.6)',
+            transition: 'border-color 0.2s, background 0.2s',
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "var(--primary)";
-            e.currentTarget.style.background = "rgba(46,211,113,0.03)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "#ddd";
-            e.currentTarget.style.background = "white";
-          }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.background = 'rgba(34,197,94,0.04)'; }}
+          onMouseLeave={(e) => { if (!dragOver) { e.currentTarget.style.borderColor = '#ddd'; e.currentTarget.style.background = 'rgba(245,242,232,0.6)'; } }}
         >
           <Camera
             size={32}
@@ -285,23 +288,15 @@ Pilih deviceTypes dan kondisi yang relevan dari list yang disediakan. Jika bukan
           {analyzing && (
             <div
               style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "0.6rem",
-                padding: "0.75rem",
-                background: "rgba(46,211,113,0.08)",
-                borderRadius: 12,
-                color: "var(--primary)",
-                fontWeight: 600,
-                fontSize: "0.9rem",
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                gap: '0.75rem', padding: '1rem',
+                background: 'linear-gradient(135deg, rgba(34,197,94,0.08), rgba(34,197,94,0.04))',
+                borderRadius: 14, color: 'var(--primary)',
+                fontWeight: 600, fontSize: '0.9rem', border: '1px solid rgba(34,197,94,0.15)',
               }}
             >
-              <Loader2
-                size={18}
-                style={{ animation: "spin 1s linear infinite" }}
-              />
-              Sedang menganalisa gambar...
+              <Loader2 size={18} style={{ animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+              {loadingText || 'Analyzing...'}
             </div>
           )}
 
@@ -309,18 +304,21 @@ Pilih deviceTypes dan kondisi yang relevan dari list yang disediakan. Jika bukan
           {error && (
             <div
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                padding: "0.75rem 1rem",
-                background: "rgba(255,80,80,0.08)",
-                borderRadius: 12,
-                color: "#e53e3e",
-                fontSize: "0.88rem",
+                display: 'flex', flexDirection: 'column', gap: '0.75rem',
+                padding: '1rem', background: 'rgba(239,68,68,0.06)',
+                borderRadius: 14, border: '1px solid rgba(239,68,68,0.15)',
               }}
             >
-              <AlertCircle size={16} />
-              {error}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#dc2626' }}>
+                <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: '0.88rem', fontWeight: 500 }}>{error}</span>
+              </div>
+              <button
+                onClick={analyzeImage}
+                style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0 }}
+              >
+                → Coba lagi
+              </button>
             </div>
           )}
 
@@ -421,12 +419,12 @@ Pilih deviceTypes dan kondisi yang relevan dari list yang disediakan. Jika bukan
 // ─── Checklist Kondisi Component ─────────────────────────────────────────────
 function KondisiChecklist({ value, onChange }) {
   const options = [
-    { id: "menyala", label: "Menyala normal", icon: "✅" },
-    { id: "mati", label: "Mati total", icon: "⚫" },
-    { id: "layarRetak", label: "Layar retak", icon: "💔" },
-    { id: "bateraiBocor", label: "Baterai bocor", icon: "⚠️" },
-    { id: "fisikRusak", label: "Fisik rusak", icon: "🔨" },
-    { id: "kondisiBaik", label: "Kondisi baik", icon: "👍" },
+    { id: "menyala", label: "Menyala normal", icon: <Activity size={14} /> },
+    { id: "mati", label: "Mati total", icon: <MinusCircle size={14} /> },
+    { id: "layarRetak", label: "Layar retak", icon: <ShieldAlert size={14} /> },
+    { id: "bateraiBocor", label: "Baterai bocor", icon: <AlertCircle size={14} /> },
+    { id: "fisikRusak", label: "Fisik rusak", icon: <Wrench size={14} /> },
+    { id: "kondisiBaik", label: "Kondisi baik", icon: <ThumbsUp size={14} /> },
   ];
 
   const toggle = (id) => {
@@ -627,22 +625,24 @@ function PickupSchedule() {
   return (
     <div className="container" style={{ padding: "2rem 2rem 6rem" }}>
       {/* Header */}
-      <div style={{ textAlign: "center", marginBottom: "3rem" }}>
-        <span className="tag-badge">Logistics</span>
-        <h1 style={{ fontSize: "3rem", marginBottom: "1rem" }}>
-          Pickup Scheduling
-        </h1>
-        <p
-          style={{
-            color: "var(--text-muted)",
-            maxWidth: "600px",
-            margin: "0 auto",
-          }}
-        >
-          Tidak bisa ke drop point? Jadwalkan penjemputan e-waste ke rumahmu.
-          Mitra eco-logistics kami siap menjemput langsung ke lokasimu.
-        </p>
-      </div>
+      <ScrollReveal animation="slideUp">
+        <div style={{ textAlign: "center", marginBottom: "3rem" }}>
+          <span className="tag-badge">Logistics</span>
+          <h1 style={{ fontSize: "3rem", marginBottom: "1rem" }}>
+            Pickup Scheduling
+          </h1>
+          <p
+            style={{
+              color: "var(--text-muted)",
+              maxWidth: "600px",
+              margin: "0 auto",
+            }}
+          >
+            Tidak bisa ke drop point? Jadwalkan penjemputan e-waste ke rumahmu.
+            Mitra eco-logistics kami siap menjemput langsung ke lokasimu.
+          </p>
+        </div>
+      </ScrollReveal>
 
       {submitted ? (
         /* ── Success State ── */
@@ -780,6 +780,7 @@ function PickupSchedule() {
       ) : (
         /* ── Form ── */
         <div
+          className="pickup-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "1.4fr 1fr",
@@ -1029,7 +1030,7 @@ function PickupSchedule() {
                       id: "reguler",
                       label: "Reguler",
                       desc: "Gratis · 1–2 hari kerja",
-                      icon: "🚚",
+                      icon: <Truck size={20} color="var(--text-muted)" />,
                     },
                     {
                       id: "prioritas",
@@ -1054,7 +1055,17 @@ function PickupSchedule() {
                       }}
                     >
                       <div
-                        style={{ fontSize: "1.25rem", marginBottom: "0.25rem" }}
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: "10px",
+                          background: form.priority === opt.id ? "rgba(46,211,113,0.1)" : "rgba(0,0,0,0.04)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          marginBottom: "0.4rem",
+                          transition: "background 0.2s ease",
+                        }}
                       >
                         {opt.icon}
                       </div>
@@ -1146,7 +1157,9 @@ function PickupSchedule() {
                         userSelect: "none",
                       }}
                     >
-                      {form.deviceTypes.includes(device) ? "✓ " : ""}
+                      {form.deviceTypes.includes(device) && (
+                        <Check size={12} style={{ flexShrink: 0 }} />
+                      )}
                       {device}
                     </div>
                   ))}
@@ -1337,9 +1350,7 @@ function PickupSchedule() {
                     fontSize: "0.9rem",
                   }}
                 >
-                  <span style={{ color: "var(--primary)", fontWeight: 700 }}>
-                    ✓
-                  </span>{" "}
+                  <CheckCircle2 size={15} color="var(--primary)" style={{ flexShrink: 0 }} />
                   {area}
                 </div>
               ))}
