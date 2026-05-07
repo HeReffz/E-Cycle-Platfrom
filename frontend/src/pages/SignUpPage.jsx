@@ -1,135 +1,204 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import "../styles/auth.css";
+import { Mail, Lock, Eye, EyeOff, User, Leaf } from 'lucide-react';
+import { getApiUrl, setAuthToken, setUser } from '../utils/auth';
+import '../styles/auth.css';
 
 const SignUpPage = () => {
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [emailError, setEmailError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
 
-  const validateEmail = (emailValue) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(emailValue);
+  const validateEmail = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    setError('');
+
+    // Real-time field validation
+    setFieldErrors(prev => {
+      const next = { ...prev };
+      if (name === 'email') {
+        if (value && !validateEmail(value)) next.email = 'Format email tidak valid';
+        else delete next.email;
+      }
+      if (name === 'password') {
+        if (value && value.length < 6) next.password = 'Password minimal 6 karakter';
+        else delete next.password;
+      }
+      if (name === 'name') {
+        if (value && value.trim().length < 2) next.name = 'Nama minimal 2 karakter';
+        else delete next.name;
+      }
+      return next;
+    });
   };
 
-  const handleEmailChange = (e) => {
-    const value = e.target.value;
-    setEmail(value);
-    setError(''); // Reset error umum saat mengetik
-    
-    if (value && !validateEmail(value)) {
-      setEmailError('Format email tidak valid');
-    } else {
-      setEmailError('');
-    }
-  };
+  const isFormValid =
+    formData.name.trim().length >= 2 &&
+    formData.email &&
+    validateEmail(formData.email) &&
+    formData.password.length >= 6 &&
+    Object.keys(fieldErrors).length === 0;
 
-  const handleSignUp = (e) => {
+  const handleSignUp = async (e) => {
     e.preventDefault();
-    
-    // Validasi tambahan sebelum kirim
-    if (!validateEmail(email)) {
-      setEmailError('Format email tidak valid');
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('Password minimal 6 karakter');
-      return;
-    }
+    if (!isFormValid) return;
 
     setLoading(true);
-    
-    // Simulasi proses pendaftaran (Mock API)
-    setTimeout(() => {
-      // Simpan data sementara jika diperlukan
-      localStorage.setItem('tempEmail', email);
-      
-      setLoading(false);
-      
-      // ALUR: Setelah sukses daftar, arahkan ke halaman LOGIN
-      navigate('/LoginPage'); 
-    }, 1500);
-  };
+    setError('');
 
-  // Validasi tombol: email harus valid dan password minimal 6 karakter
-  const isFormValid = email && validateEmail(email) && !emailError && password.length >= 6;
+    try {
+      const res = await fetch(`${getApiUrl()}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          email: formData.email.trim().toLowerCase(),
+          password: formData.password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        // 409 = duplicate email
+        setError(data.error || 'Pendaftaran gagal. Coba lagi.');
+        return;
+      }
+
+      // Auto-login after register (token returned from register endpoint)
+      setAuthToken(data.token);
+      setUser(data.user);
+
+      navigate('/dashboard', { replace: true });
+    } catch (err) {
+      console.error('[SignUp] Network error:', err);
+      setError('Tidak dapat terhubung ke server. Periksa koneksi Anda.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="auth-container">
       <div className="auth-card">
+        {/* Logo & Header */}
         <div className="auth-header">
+          <div className="auth-logo">
+            <Leaf size={32} className="auth-logo-icon" />
+          </div>
           <h1>Buat Akun</h1>
-          <p>Daftar untuk memulai menggunakan E-Cycle</p>
+          <p>Bergabung dengan komunitas E-Cycle</p>
         </div>
 
-        {/* Tampilkan pesan error jika ada */}
-        {error && <div className="error-message">{error}</div>}
+        {error && (
+          <div className="error-message" role="alert">
+            <span>⚠️ {error}</span>
+          </div>
+        )}
 
-        <form onSubmit={handleSignUp}>
-          {/* KOLOM EMAIL */}
+        <form onSubmit={handleSignUp} noValidate>
+          {/* Name */}
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="signup-name">Nama Lengkap</label>
             <div className="input-wrapper">
-              <Mail size={20} className="input-icon" />
+              <User size={18} className="input-icon" aria-hidden="true" />
               <input
-                id="email"
-                type="email"
-                placeholder="Masukkan email Anda"
-                value={email}
-                onChange={handleEmailChange}
+                id="signup-name"
+                type="text"
+                name="name"
+                placeholder="Nama lengkap Anda"
+                value={formData.name}
+                onChange={handleChange}
+                autoComplete="name"
                 required
               />
             </div>
-            {emailError && <span className="helper-text error">{emailError}</span>}
+            {fieldErrors.name && (
+              <span className="helper-text error">{fieldErrors.name}</span>
+            )}
           </div>
 
-          {/* KOLOM PASSWORD */}
+          {/* Email */}
           <div className="form-group">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="signup-email">Email</label>
             <div className="input-wrapper">
-              <Lock size={20} className="input-icon" />
+              <Mail size={18} className="input-icon" aria-hidden="true" />
               <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Buat password minimal 6 karakter"
-                value={password}
-                onChange={(e) => {
-                    setPassword(e.target.value);
-                    setError(''); // Reset error saat user memperbaiki password
-                }}
+                id="signup-email"
+                type="email"
+                name="email"
+                placeholder="contoh@email.com"
+                value={formData.email}
+                onChange={handleChange}
+                autoComplete="email"
+                required
+              />
+            </div>
+            {fieldErrors.email && (
+              <span className="helper-text error">{fieldErrors.email}</span>
+            )}
+          </div>
+
+          {/* Password */}
+          <div className="form-group">
+            <label htmlFor="signup-password">Password</label>
+            <div className="input-wrapper">
+              <Lock size={18} className="input-icon" aria-hidden="true" />
+              <input
+                id="signup-password"
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                placeholder="Minimal 6 karakter"
+                value={formData.password}
+                onChange={handleChange}
+                autoComplete="new-password"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="password-toggle"
-                tabIndex="-1" 
+                aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                tabIndex="-1"
               >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
-            <span className="helper-text">Minimal 6 karakter</span>
+            {fieldErrors.password ? (
+              <span className="helper-text error">{fieldErrors.password}</span>
+            ) : (
+              <span className="helper-text">Minimal 6 karakter</span>
+            )}
           </div>
 
           <button
             type="submit"
-            className={`login-btn ${!isFormValid || loading ? 'disabled' : ''}`}
+            id="signup-submit-btn"
+            className={`auth-btn${!isFormValid || loading ? ' disabled' : ''}`}
             disabled={!isFormValid || loading}
           >
-            {loading ? 'Mendaftar...' : 'Daftar'}
+            {loading ? (
+              <span className="btn-loading">
+                <span className="spinner" /> Mendaftar...
+              </span>
+            ) : (
+              'Buat Akun'
+            )}
           </button>
         </form>
 
         <div className="auth-footer">
-            {/* Link kembali ke LoginPage */}
-            <p>Sudah punya akun? <Link to="/LoginPage">Masuk di sini</Link></p>
+          <p>
+            Sudah punya akun?{' '}
+            <Link to="/LoginPage">Masuk di sini</Link>
+          </p>
         </div>
       </div>
     </div>

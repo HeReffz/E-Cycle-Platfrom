@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import "../styles/auth.css";
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Mail, Lock, Eye, EyeOff, Leaf } from 'lucide-react';
+import { getApiUrl, setAuthToken, setUser } from '../utils/auth';
+import '../styles/auth.css';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = location.state?.from?.pathname || '/dashboard';
+
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // SEKARANG: Cuma cek email dan password aja biar gak ribet
   const isFormValid = formData.email && formData.password;
 
   const handleInputChange = (e) => {
@@ -19,84 +22,128 @@ const LoginPage = () => {
     setError('');
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    if (!isFormValid) return;
+
     setLoading(true);
-    
-    setTimeout(() => {
-      // Mengizinkan user untuk login dengan akun test, akun yang baru didaftarkan, atau akun apapun untuk keperluan prototype
-      if (formData.email && formData.password) {
-        localStorage.setItem('user', JSON.stringify({ email: formData.email }));
-        localStorage.setItem('authToken', 'mock-auth-token');
-        navigate('/');
-      } else {
-        setError('Email atau password salah');
-        setLoading(false);
+    setError('');
+
+    try {
+      const res = await fetch(`${getApiUrl()}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email.trim().toLowerCase(),
+          password: formData.password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Login gagal. Coba lagi.');
+        return;
       }
-    }, 1500);
+
+      // Persist auth state
+      setAuthToken(data.token);
+      setUser(data.user);
+
+      navigate(redirectTo, { replace: true });
+    } catch (err) {
+      console.error('[Login] Network error:', err);
+      setError('Tidak dapat terhubung ke server. Periksa koneksi Anda.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="auth-container">
       <div className="auth-card">
+        {/* Logo & Header */}
         <div className="auth-header">
-          <h1>Login</h1>
+          <div className="auth-logo">
+            <Leaf size={32} className="auth-logo-icon" />
+          </div>
+          <h1>Selamat Datang</h1>
           <p>Masuk ke akun E-Cycle Anda</p>
         </div>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && (
+          <div className="error-message" role="alert">
+            <span>⚠️ {error}</span>
+          </div>
+        )}
 
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleLogin} noValidate>
+          {/* Email */}
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="login-email">Email</label>
             <div className="input-wrapper">
-              <Mail size={20} className="input-icon" />
+              <Mail size={18} className="input-icon" aria-hidden="true" />
               <input
-                id="email"
+                id="login-email"
                 type="email"
                 name="email"
-                placeholder="Masukkan email Anda"
+                placeholder="contoh@email.com"
                 value={formData.email}
                 onChange={handleInputChange}
+                autoComplete="email"
                 required
               />
             </div>
           </div>
 
+          {/* Password */}
           <div className="form-group">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="login-password">Password</label>
             <div className="input-wrapper">
-              <Lock size={20} className="input-icon" />
+              <Lock size={18} className="input-icon" aria-hidden="true" />
               <input
-                id="password"
+                id="login-password"
                 type={showPassword ? 'text' : 'password'}
                 name="password"
                 placeholder="Masukkan password Anda"
                 value={formData.password}
                 onChange={handleInputChange}
+                autoComplete="current-password"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="password-toggle"
+                aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                tabIndex="-1"
               >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
 
           <button
             type="submit"
-            className={`login-btn ${!isFormValid || loading ? 'disabled' : ''}`}
+            id="login-submit-btn"
+            className={`auth-btn${!isFormValid || loading ? ' disabled' : ''}`}
             disabled={!isFormValid || loading}
           >
-            {loading ? 'Memproses...' : 'Masuk'}
+            {loading ? (
+              <span className="btn-loading">
+                <span className="spinner" /> Memproses...
+              </span>
+            ) : (
+              'Masuk'
+            )}
           </button>
         </form>
 
         <div className="auth-footer">
-            <p>Belum punya akun? <Link to="/SignUpPage">Daftar di sini</Link></p>
+          <p>
+            Belum punya akun?{' '}
+            <Link to="/SignUpPage">Daftar di sini</Link>
+          </p>
         </div>
       </div>
     </div>

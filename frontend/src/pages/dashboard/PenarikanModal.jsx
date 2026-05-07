@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { X, AlertCircle, CheckCircle } from 'lucide-react';
+import { fetchWithAuth } from '../../utils/auth';
 import '../../styles/modal.css';
 
-const PenarikanModal = ({ method, onSave, onClose, saldo, dailyLimit }) => {
+const PenarikanModal = ({ method, onSave, onClose, saldo, dailyLimit, refreshData }) => {
   const [nomor, setNomor] = useState('');
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
@@ -72,17 +73,44 @@ const PenarikanModal = ({ method, onSave, onClose, saldo, dailyLimit }) => {
     setStep('confirm');
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setLoading(true);
+    setError('');
     
-    // Mock API call
-    setTimeout(() => {
+    try {
+      const res = await fetchWithAuth('/api/users/me/withdraw', {
+        method: 'POST',
+        body: JSON.stringify({
+          amount: parseInt(amount),
+          method: method,
+          nomor: nomor
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Terjadi kesalahan saat memproses penarikan');
+        setLoading(false);
+        return;
+      }
+
       onSave(nomor);
       setSuccess(true);
+      
+      // Refresh the dashboard balance and transaction history
+      if (refreshData) {
+        refreshData();
+      }
+
       setTimeout(() => {
         onClose();
       }, 2000);
-    }, 1500);
+    } catch (err) {
+      console.error('[Penarikan] Error:', err);
+      setError('Tidak dapat terhubung ke server');
+      setLoading(false);
+    }
   };
 
   if (success) {

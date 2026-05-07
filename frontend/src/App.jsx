@@ -11,6 +11,7 @@ import LoadingScreen from "./components/LoadingScreen";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
 import DashboardPage from "./pages/dashboard/DasboardPage";
+import ProtectedRoute from "./components/ProtectedRoute";
 import "./index.css";
 import "./styles/auth.css";
 
@@ -46,7 +47,14 @@ function App() {
               <Route path="/pickup" element={<PickupSchedule />} />
               <Route path="/LoginPage" element={<LoginPage />} />
               <Route path="/SignUpPage" element={<SignUpPage />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
             </Routes>
           </main>
           <Footer />

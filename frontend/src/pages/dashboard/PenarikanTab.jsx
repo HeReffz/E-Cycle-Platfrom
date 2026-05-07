@@ -3,10 +3,16 @@ import { Edit2, CheckCircle } from 'lucide-react';
 import PenarikanModal from './PenarikanModal';
 import '../../styles/penarikan.css';
 
-const PenarikanTab = () => {
+/**
+ * PenarikanTab — Withdrawal methods management.
+ * Props:
+ *   balance: number | null  (real balance from backend, passed by DashboardPage)
+ *   refreshData: function (fetches fresh balance from backend)
+ */
+const PenarikanTab = ({ balance, refreshData }) => {
   const [selectedMethod, setSelectedMethod] = useState('gopay');
   const [showModal, setShowModal] = useState(false);
-  const [saldo] = useState(2500000);
+  const saldo = balance ?? 0; // Use real balance, default to 0 while loading
   const [withdrawalData, setWithdrawalData] = useState({
     gopay: { nomor: '', lastChanged: null },
     dana: { nomor: '', lastChanged: null },
@@ -143,6 +149,7 @@ const PenarikanTab = () => {
           onClose={() => setShowModal(false)}
           saldo={saldo}
           dailyLimit={DAILY_LIMIT}
+          refreshData={refreshData}
         />
       )}
     </div>
