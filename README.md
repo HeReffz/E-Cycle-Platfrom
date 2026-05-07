@@ -1,5 +1,7 @@
 # E-Cycle Platform
 
+**Live Demo:** [https://e-cycleplatform.vercel.app/](https://e-cycleplatform.vercel.app/)
+
 Platform e-waste management modern dengan fitur:
 - 🗺️ **Drop Point Finder** — Peta interaktif lokasi pengumpulan e-waste
 - 🤖 **AI-Powered Estimator** — Estimasi nilai perangkat bekas
